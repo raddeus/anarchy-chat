@@ -2,7 +2,7 @@ defmodule WebsocketPlaygroundTest do
   use ExUnit.Case
   doctest WebsocketPlayground
 
-  test "greets the world" do
-    assert WebsocketPlayground.hello() == :world
+  test "can view stats" do
+    assert WebsocketPlayground.stats() == :todo_return_stats
   end
 end
