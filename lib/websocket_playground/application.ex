@@ -8,7 +8,9 @@ defmodule WebsocketPlayground.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {Registry, keys: :duplicate, name: Registry.WebsocketConnections},
+      {Registry, keys: :duplicate, name: Registry.WebsocketConnections}, # TODO - naming? WebsocketPlayground.WebsocketConnectionRegistry?
+      {Registry, keys: :unique, name: WebsocketPlayground.ChatRoom.Registry},
+      {DynamicSupervisor, name: WebsocketPlayground.ChatRoom.Supervisor, strategy: :one_for_one},
       {Plug.Cowboy, scheme: :http, plug: nil, options: [
         dispatch: dispatch(),
         port: 4000

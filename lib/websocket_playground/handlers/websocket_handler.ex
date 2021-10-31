@@ -4,8 +4,9 @@ defmodule WebsocketPlayground.WebsocketHandler do
   @behaviour :cowboy_websocket
 
   def init(request, _state) do
+    [room_id | _] = request.path_info
     state = %{
-      registry_key: request.path,
+      room_id: room_id,
       authorized: request.path !== "unauthorized"
     }
 
@@ -21,8 +22,17 @@ defmodule WebsocketPlayground.WebsocketHandler do
       {:reply, {:close, 1000, "reason"}, state}
     else
       Logger.debug("Registering new websocket connection")
+
       Registry.WebsocketConnections
-      |> Registry.register(state.registry_key, {})
+      |> Registry.register(state.room_id, {})
+
+      case WebsocketPlayground.ChatRoom.lookup(state.room_id) do
+        {:ok, _pid} ->
+          Logger.debug("Room already exists")
+        _ ->
+          Logger.debug("Creating new room: " <> state.room_id)
+          {:ok, _pid} = WebsocketPlayground.ChatRoom.start(state.room_id)
+      end
 
       {:ok, state}
     end
@@ -32,16 +42,14 @@ defmodule WebsocketPlayground.WebsocketHandler do
     payload = Jason.decode!(json)
     message = payload["data"]["message"]
 
-    Registry.WebsocketConnections
-    |> Registry.dispatch(state.registry_key, fn(entries) ->
-      for {pid, _} <- entries do
-        if pid != self() do
-          Process.send(pid, message, [])
-        end
-      end
-    end)
-
-    {:reply, {:text, message}, state}
+    case WebsocketPlayground.ChatRoom.lookup(state.room_id) do
+      {:ok, pid} ->
+        GenServer.cast(pid, {:broadcast_message, message})
+        # {:reply, {:text, message}, state}
+        {:ok, state}
+      _ ->
+        {:reply, {:close, 1000, "reason"}, state}
+    end
   end
 
   def websocket_info(info, state) do
