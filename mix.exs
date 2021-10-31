@@ -23,7 +23,8 @@ defmodule WebsocketPlayground.MixProject do
   defp deps do
     [
       {:cowboy, "~> 2.9"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:jason, "~> 1.1"}
     ]
   end
 end

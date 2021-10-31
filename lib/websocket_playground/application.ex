@@ -8,8 +8,11 @@ defmodule WebsocketPlayground.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: WebsocketPlayground.Worker.start_link(arg)
-      {Plug.Cowboy, scheme: :http, plug: WebsocketPlayground.Routers.MainRouter, options: [port: 4000]}
+      {Registry, keys: :duplicate, name: Registry.WebsocketConnections},
+      {Plug.Cowboy, scheme: :http, plug: nil, options: [
+        dispatch: dispatch(),
+        port: 4000
+      ]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -17,4 +20,16 @@ defmodule WebsocketPlayground.Application do
     opts = [strategy: :one_for_one, name: WebsocketPlayground.Supervisor]
     Supervisor.start_link(children, opts)
   end
+
+  defp dispatch do
+    [
+      {:_,
+        [
+          {"/ws/[...]", WebsocketPlayground.WebsocketHandler, []},
+          {:_, Plug.Cowboy.Handler, {WebsocketPlayground.Routers.MainRouter, []}}
+        ]
+      }
+    ]
+  end
+
 end
