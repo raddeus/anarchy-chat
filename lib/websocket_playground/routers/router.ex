@@ -6,12 +6,13 @@ defmodule WebsocketPlayground.Routers.MainRouter do
   plug :dispatch
 
   forward "/public", to: WebsocketPlayground.Handlers.StaticFileHandler
-  # get "/" do
-  #   page = EEx.eval_file("views/index.html.eex")
-  #   conn
-  #   |> put_resp_content_type("text/html")
-  #   |> send_resp(200, page)
-  # end
+
+  get "/" do
+    file = File.read!("priv/static/dist/index.html")
+    conn
+    |> put_resp_content_type("text/html")
+    |> send_resp(200, file)
+  end
 
   # forward "/ws", to: WebsocketPlayground.WebsocketRouter
 

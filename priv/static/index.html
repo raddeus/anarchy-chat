@@ -14,51 +14,58 @@
       <input id="message" type="text">
       <br>
       <br>
-      <input type="submit" value="send" id="button">
+      <input type="submit" value="Send Message" id="send">
+      <button type="button" id="badpacket">Send Bad Packet</button>
     </form>
 
     <script type="application/javascript">
     (() => {
-    class myWebsocketHandler {
-        setupSocket() {
-            this.socket = new WebSocket("ws://localhost:4000/ws/chat")
+        class myWebsocketHandler {
+            setupSocket() {
+                this.socket = new WebSocket("ws://localhost:4000/ws/chat")
 
-            this.socket.addEventListener("message", (event) => {
-                const pTag = document.createElement("p")
-                pTag.innerHTML = event.data
+                this.socket.addEventListener("message", (event) => {
+                    const pTag = document.createElement("p")
+                    pTag.innerHTML = event.data
 
-                document.getElementById("main").append(pTag)
-            })
+                    document.getElementById("main").append(pTag)
+                })
 
-            this.socket.addEventListener("close", () => {
-                console.log('Socket closed.');
-                setTimeout(() => {
-                    console.log('Attempting reconnect...');
-                    this.setupSocket()
-                }, 2000)
-            })
+                this.socket.addEventListener("close", () => {
+                    console.log('Socket closed.');
+                    setTimeout(() => {
+                        console.log('Attempting reconnect...');
+                        this.setupSocket()
+                    }, 2000)
+                })
+            }
+
+            submit(event) {
+                event.preventDefault()
+                const input = document.getElementById("message")
+                const message = input.value
+                input.value = ""
+
+                this.socket.send(
+                    JSON.stringify({
+                    data: {message: message},
+                    })
+                )
+            }
+
+            sendBadPacket(event) {
+                event.preventDefault()
+                this.socket.send('UH OH, Server cannot handle this')
+            }
+
         }
 
-        submit(event) {
-        event.preventDefault()
-        const input = document.getElementById("message")
-        const message = input.value
-        input.value = ""
-
-        this.socket.send(
-            JSON.stringify({
-            data: {message: message},
-            })
-        )
-        }
-    }
-
-    console.log('Initing websocket handler');
-    const websocketClass = new myWebsocketHandler()
-    websocketClass.setupSocket()
-    
-    document.getElementById("button")
-        .addEventListener("click", (event) => websocketClass.submit(event))
+        console.log('Initing websocket handler');
+        const websocketClass = new myWebsocketHandler()
+        websocketClass.setupSocket()
+        
+        document.getElementById("send").addEventListener("click", (event) => websocketClass.submit(event))
+        document.getElementById("badpacket").addEventListener("click", (event) => websocketClass.sendBadPacket(event))
     })()
     </script>
 </body>
