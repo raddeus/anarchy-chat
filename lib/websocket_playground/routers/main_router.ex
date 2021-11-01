@@ -14,7 +14,7 @@ defmodule WebsocketPlayground.Routers.MainRouter do
     |> send_resp(200, file)
   end
 
-  # forward "/ws", to: WebsocketPlayground.WebsocketRouter
+  forward "/api", to: WebsocketPlayground.Routers.ApiRouter
 
   match _ do
     send_resp(conn, 404, "Not Found")

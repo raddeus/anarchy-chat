@@ -24,7 +24,8 @@ defmodule WebsocketPlayground.MixProject do
     [
       {:cowboy, "~> 2.9"},
       {:plug_cowboy, "~> 2.0"},
-      {:jason, "~> 1.1"}
+      {:jason, "~> 1.1"},
+      {:cors_plug, "~> 2.0"},
     ]
   end
 end

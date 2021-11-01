@@ -1,6 +1,7 @@
 defmodule WebsocketPlayground.ChatRoom do
   use GenServer
   require Logger
+
   @registry WebsocketPlayground.ChatRoom.Registry
   @supervisor WebsocketPlayground.ChatRoom.Supervisor
 
@@ -18,6 +19,10 @@ defmodule WebsocketPlayground.ChatRoom do
       [{pid, _}] -> {:ok, pid}
       [] -> {:error, :not_found}
     end
+  end
+
+  def get_all() do
+    Registry.select(@registry, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
   end
 
   def start_link(opts) do
@@ -38,6 +43,9 @@ defmodule WebsocketPlayground.ChatRoom do
   @impl true
   def handle_cast({:broadcast_message, message}, state) do
     Logger.info("Received handle_cast for :broadcast_message. Broadcasting to entire room.")
+    if message === "!crash" do
+      raise("Crashing due to receiving !crash command")
+    end
     Registry.WebsocketConnections
     |> Registry.dispatch(state.room_id, fn(entries) ->
       for {pid, _state} <- entries do
@@ -46,5 +54,6 @@ defmodule WebsocketPlayground.ChatRoom do
     end)
     {:noreply, %{state | messages: state.messages ++ [message]}}
   end
+
 
 end
