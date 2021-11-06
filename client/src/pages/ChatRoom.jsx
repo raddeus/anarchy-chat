@@ -1,17 +1,40 @@
 import "./ChatRoom.css"
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
+import { UsernameContext } from "../contexts/UsernameContext";
 import {
     useHistory, useParams
 } from "react-router-dom";
 import { takeRight } from "lodash";
 
 export default () => {
+    const {name, setName, prevName} = useContext(UsernameContext)
     let { roomId } = useParams();
+    roomId = decodeURIComponent(roomId);
+
     const messageContainerRef = useRef();
     const [websocket, setWebsocket] = useState(null);
     const [isConnecting, setIsConnecting] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState([]);
+
+    const [isFetchingMessages, setIsFetchingMessages] = useState(false);
+    useEffect(() => {
+        async function fetchMessages() {
+            setIsFetchingMessages(true);
+            try {
+                const response = await fetch('http://localhost:4000/api/messages?room_id=' + encodeURIComponent(roomId));
+                const data = await response.json();
+                setMessages(data.messages.map(msg => msg.sender + ': ' + msg.content));
+            } catch (e) {
+                console.error(e);
+                setMessages([]);
+            }
+            setIsFetchingMessages(false)
+        }
+
+        fetchMessages();
+    }, []);
+
     const [messageInput, setMessageInput] = useState('');
     const sendMessage = (e) => {
         e.preventDefault();
@@ -57,9 +80,11 @@ export default () => {
     const history = useHistory();
 
     useEffect(() => {
+        let ws;
+        let shouldReconnect = true;
         async function initWebsocket() {
             console.log('INIT WEBSOCKET');
-            let ws = new WebSocket("ws://localhost:4000/ws/" + roomId);
+            ws = new WebSocket("ws://localhost:4000/ws/" + encodeURIComponent(roomId) + '?username=' + encodeURIComponent(name));
             setWebsocket(ws);
             setIsConnecting(true);
             setIsConnected(false);
@@ -71,16 +96,18 @@ export default () => {
                 })
             })
 
-            ws.addEventListener("close", () => {
-                console.log('Socket closed.');
+            ws.addEventListener("close", (e) => {
+                console.log('Socket closed.', e);
                 setWebsocket(null);
                 ws = null;
                 setIsConnecting(false);
                 setIsConnected(false);
-                setTimeout(() => {
-                    console.log('Attempting reconnect...');
-                    initWebsocket()
-                }, 500)
+                if (shouldReconnect) {
+                    setTimeout(() => {
+                        console.log('Attempting reconnect...');
+                        initWebsocket()
+                    }, 500)
+                }
             })
 
             ws.addEventListener("open", () => {
@@ -93,7 +120,12 @@ export default () => {
         initWebsocket();
 
         return () => {
+            shouldReconnect = false;
+            if (ws) {
+                ws.close()
+            }
             setWebsocket(null);
+            ws = null;
         }
     }, []);
 
@@ -127,11 +159,13 @@ export default () => {
                 ))}
             </div>
             <div className="chat-tools">
+                <div className="chat-name" onClick={() => setName('')}>
+                    Name: {name}
+                </div>
                 <form action="#" onSubmit={sendMessage}>
                     <input type="text" value={messageInput} onChange={(e) => setMessageInput(e.target.value)}/>
                     <input type="submit" value="Send"/>
                 </form>
-
                 <button onClick={sendBadPacket}>Send Invalid Packet</button>
                 <button onClick={crashRoom}>Crash Room</button>
                 <button onClick={spamRoom}>Spam Room</button>

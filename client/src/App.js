@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useContext} from "react";
 import {
   BrowserRouter as Router,
   Switch,
@@ -8,10 +8,24 @@ import {
 } from "react-router-dom";
 import Home from './pages/Home'
 import ChatRoom from './pages/ChatRoom'
+import NameSelector from "./pages/NameSelector";
+import useLocalStorage from "./hooks/useLocalStorage";
+import { UsernameContext, UsernameProvider } from "./contexts/UsernameContext";
 
 export default function App() {
+
   return (
-    <Router>
+    <UsernameProvider>
+      <Routing/>
+    </UsernameProvider>
+  );
+}
+
+function Routing(props) {
+  const {name, setName} = useContext(UsernameContext)
+  if (name) {
+    return (
+      <Router>
         <Switch>
           <Route exact path="/">
             <Home />
@@ -20,15 +34,9 @@ export default function App() {
             <ChatRoom />
           </Route>
         </Switch>
-    </Router>
-  );
-}
+      </Router>
+    )
+  }
 
-function ChatRoomOld(props) {
-  let { roomId } = useParams();
-  return <h2>Not Impl: {roomId}</h2>;
-}
-
-function UsersOld() {
-  return <h2>Users</h2>;
+  return <NameSelector/>
 }

@@ -30,7 +30,7 @@ export default () => {
             <h1>Elixir Chat</h1>
             <div className="create-room-container">
                 Create a new room: 
-                <form action="#" onSubmit={e => {e.preventDefault(); history.push('/rooms/' + newRoomId)}}>
+                <form action="#" onSubmit={e => {e.preventDefault(); history.push('/rooms/' + encodeURIComponent(newRoomId))}}>
                     <input type="text" value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)}/>
                     <button type="submit">Create</button>
                 </form>
@@ -42,7 +42,7 @@ export default () => {
             {!isFetchingRooms && rooms && rooms.length > 0 && (
                 <div className="rooms-container">
                     {rooms.map(room => (
-                        <div className="room" key={room.name} onClick={() => history.push('/rooms/' + room.id)}>
+                        <div className="room" key={room.name} onClick={() => history.push('/rooms/' + encodeURIComponent(room.id))}>
                             <div className="room-id">{room.id}</div>
                             <div className="room-user-count">{room.user_count}</div>
                             <div className="room-pid">{room.pid}</div>
