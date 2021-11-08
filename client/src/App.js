@@ -15,9 +15,11 @@ import { UsernameContext, UsernameProvider } from "./contexts/UsernameContext";
 export default function App() {
 
   return (
+    <div className="bg-gray-900 text-gray-400 min-h-screen">
     <UsernameProvider>
       <Routing/>
     </UsernameProvider>
+    </div>
   );
 }
 

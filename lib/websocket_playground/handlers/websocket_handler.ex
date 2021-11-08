@@ -8,15 +8,22 @@ defmodule WebsocketPlayground.WebsocketHandler do
   def init(request, _state) do
     [room_id | _] = request.path_info
     %{"username" => username} = URI.decode_query(request.qs)
+
     state = %{
       room_id: room_id,
-      authorized: String.length(username) > 3 && String.length(username) < 25,
+      authorized: authorized?(room_id, username),
       username: username,
     }
 
     {:cowboy_websocket, request, state, %{
       idle_timeout: 1000 * 60 * 15
     }}
+  end
+
+  defp authorized?(room_id, username) do
+    username_valid? = String.length(username) >= 3 && String.length(username) <= 20
+    room_id_valid? = String.length(room_id) >= 1 && String.length(username) <= 20
+    username_valid? && room_id_valid?
   end
 
   def websocket_init(state) do
@@ -36,7 +43,6 @@ defmodule WebsocketPlayground.WebsocketHandler do
   defp get_or_create_room(room_id) do
     case WebsocketPlayground.ChatRoom.lookup(room_id) do
       {:ok, pid} ->
-        Logger.debug("Room already exists")
         {:ok, pid}
       _ ->
         Logger.debug("Creating new room: " <> room_id)
@@ -51,7 +57,6 @@ defmodule WebsocketPlayground.WebsocketHandler do
     case WebsocketPlayground.ChatRoom.lookup(state.room_id) do
       {:ok, pid} ->
         GenServer.cast(pid, {:broadcast_message, message, self()})
-        # {:reply, {:text, message}, state}
         {:ok, state}
       _ ->
         {:reply, {:close, 1000, "reason"}, state}
@@ -59,18 +64,11 @@ defmodule WebsocketPlayground.WebsocketHandler do
   end
 
   def websocket_info({:broadcast_message, %{content: content, sender: sender}}, state) do
-    Logger.debug("Got :broadcast_message message. Sending to client...")
-    #message |> IO.inspect()
     {:reply, {:text, "#{sender}: #{content}"}, state}
   end
 
-  def websocket_info({:broadcast_system, text}, state) do
-    Logger.debug("Got :broadcast_system message. Sending")
-    {:ok, state}
-  end
-
   def websocket_info(info, state) do
-    Logger.debug("Got websocket_info #{inspect info}")
-    {:reply, {:text, info}, state}
+    Logger.error("Got unhandled websocket_info #{inspect info}")
+    {:ok, state}
   end
 end

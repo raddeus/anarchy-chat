@@ -9,9 +9,16 @@ defmodule WebsocketPlayground.Application do
   def start(_type, _args) do
     children = [
       {WebsocketPlayground.Repo, []},
+      {WebsocketPlayground.MessageStore, []},
       {Registry, keys: :duplicate, name: Registry.WebsocketConnections}, # TODO - naming? WebsocketPlayground.WebsocketConnectionRegistry?
       {Registry, keys: :unique, name: WebsocketPlayground.ChatRoom.Registry},
-      {DynamicSupervisor, name: WebsocketPlayground.ChatRoom.Supervisor, strategy: :one_for_one},
+      {
+        DynamicSupervisor,
+        name: WebsocketPlayground.ChatRoom.Supervisor,
+        strategy: :one_for_one,
+        max_restarts: 100,
+        max_seconds: 1
+      },
       {Plug.Cowboy, scheme: :http, plug: nil, options: [
         dispatch: dispatch(),
         port: 4000

@@ -1,14 +1,17 @@
 defmodule WebsocketPlayground.ChatRoom do
-  use GenServer
+  use GenServer, restart: :transient
   require Logger
+  alias WebsocketPlayground.Schemas.Message
+  alias WebsocketPlayground.Repo
 
   @registry WebsocketPlayground.ChatRoom.Registry
   @supervisor WebsocketPlayground.ChatRoom.Supervisor
+  @message_store WebsocketPlayground.MessageStore
 
   def start(room_id) do
     DynamicSupervisor.start_child(@supervisor, {__MODULE__, [
       room_id: room_id,
-      name: {:via, Registry, {@registry, room_id}}
+      name: {:via, Registry, {@registry, room_id}},
     ]})
   end
 
@@ -39,30 +42,20 @@ defmodule WebsocketPlayground.ChatRoom do
   @impl true
   def init(opts) do
 
-
-    # messages_table |> IO.inspect()
-
     state = %{
-      messages: Keyword.get(opts, :messages, []),
       room_id: Keyword.fetch!(opts, :room_id),
-
       names: %{},
       refs: %{},
     }
-
-    if :ets.whereis(:chat_room_messages) === :undefined do
-      :ets.new(:chat_room_messages, [:set, :public, :named_table])
-    end
-    :ets.lookup(:chat_room_messages, state.room_id) |> IO.inspect()
-
+    Logger.metadata(room_id: state.room_id)
 
     schedule_persist_messages()
+    schedule_hibernate()
     {:ok, state}
   end
 
   @impl true
   def handle_cast({:broadcast_message, content, connection}, state) do
-    Logger.info("Received handle_cast for :broadcast_message. Broadcasting to entire room.")
     if content === "!crash" do
       raise("Crashing due to receiving !crash command")
     end
@@ -73,12 +66,11 @@ defmodule WebsocketPlayground.ChatRoom do
       sender: username,
       content: content,
       room: state.room_id,
-      inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-      updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+      inserted_at: now(),
+      updated_at: now(),
     }
-    #WebsocketPlayground.Repo.insert!(message)
 
-    # Process.send(connection, :get_state, []) |> IO.inspect()
+    @message_store.add_message(state.room_id, message)
 
     Registry.WebsocketConnections
     |> Registry.dispatch(state.room_id, fn(entries) ->
@@ -90,13 +82,12 @@ defmodule WebsocketPlayground.ChatRoom do
           Process.send(pid, payload, [])
       end
     end)
-    {:noreply, %{state | messages: state.messages ++ [message]}}
+    {:noreply, state}
   end
 
   @impl true
   def handle_cast({:add_connection, pid}, state) do
-    Logger.info("Got call to add connection: " <> inspect(pid))
-    # @TODO - determine behavior when the same connection is added multiple times
+    Logger.info("Adding Connection: #{inspect pid}")
     ref = Process.monitor(pid)
     refs = Map.put(state.refs, ref, pid)
     {:noreply, %{state | refs: refs}}
@@ -106,29 +97,57 @@ defmodule WebsocketPlayground.ChatRoom do
   def handle_call(:get_state, _from, state) do
     {:reply, {:ok, state}, state}
   end
-
-  @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
-    {pid, refs} = Map.pop(state.refs, ref) |> IO.inspect()
-    Logger.info("Connection closed: " <> inspect(pid) <> ", removing from room: " <> inspect(self()))
-    {:noreply, %{state | refs: refs }}
-  end
-  def handle_info(:persist_messages, state) do
-    Logger.info("[Room #{state.room_id}] Persisting all messages...");
-    WebsocketPlayground.Schemas.Message
-    |> WebsocketPlayground.Repo.insert_all(state.messages)
-    Logger.info("[Room #{state.room_id}] Done persisting messages...");
-    schedule_persist_messages()
-    {:noreply, %{state | messages: []}}
-  end
-  defp schedule_persist_messages() do
-    Process.send_after(self(), :persist_messages, 20000)
-  end
-
-  @impl true
   def handle_call(:user_count, _from, state) do
     {:reply, map_size(state.refs), state}
   end
 
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
+    {pid, refs} = Map.pop(state.refs, ref)
+    Logger.info("Removing Connection: #{inspect pid}")
+
+    if (map_size(refs) === 0) do
+      Logger.debug("No connections left. Hibernating soon...")
+      schedule_hibernate()
+    end
+
+    {:noreply, %{state | refs: refs }}
+  end
+
+  def handle_info(:persist_messages, state) do
+    Logger.info("Persisting all messages...");
+
+    ets_messages = @message_store.get_messages(state.room_id)
+
+    Message
+    |> Repo.insert_all(ets_messages)
+
+    @message_store.clear_messages(state.room_id)
+
+    Logger.info("Done persisting messages...");
+    schedule_persist_messages()
+    {:noreply, state}
+  end
+
+  def handle_info(:terminate_if_vacant, state) do
+    if map_size(state.refs) === 0 do
+      Logger.info("Terminating normally due to no activity")
+      {:stop, :normal, state}
+    else
+      {:noreply, state}
+    end
+  end
+
+  defp schedule_persist_messages(send_after \\ 20000) do
+    Process.send_after(self(), :persist_messages, send_after)
+  end
+
+  defp schedule_hibernate(send_after \\ 20000) do
+    Process.send_after(self(), :terminate_if_vacant, send_after)
+  end
+
+  defp now() do
+    NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+  end
 
 end

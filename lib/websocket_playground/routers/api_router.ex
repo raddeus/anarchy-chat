@@ -6,20 +6,32 @@ defmodule WebsocketPlayground.Routers.ApiRouter do
   plug :dispatch
 
   get "/rooms" do
-
-    rooms = Enum.map(
+    genserver_rooms = Enum.map(
       WebsocketPlayground.ChatRoom.get_all(),
       fn ({roomId, pid, _}) ->
-        #room = Registry.lookup(Registry.WebsocketConnections, roomId)
-        #room |> IO.inspect()
         %{
           id: roomId,
           pid: inspect(pid),
-          #user_count: Enum.count(Registry.lookup(Registry.WebsocketConnections, roomId))
-          user_count: GenServer.call(pid, :user_count)
+          user_count: GenServer.call(pid, :user_count),
         }
       end
     )
+
+    {:ok, result} = WebsocketPlayground.Repo.query(
+      "SELECT room as id, COUNT(*) as message_count FROM messages GROUP BY room",
+      []
+    )
+    columns = result.columns |> Enum.map(&String.to_atom(&1))
+    db_rooms = Enum.map(result.rows, fn(row) ->
+      Enum.zip(columns, row)
+        |> Map.new
+    end)
+
+    rooms = Enum.group_by(genserver_rooms ++ db_rooms, &Map.get(&1, :id))
+    |> Enum.map(fn {_, l} ->
+      Enum.concat(l)
+      |> Enum.into(%{})
+    end)
 
     conn
     |> put_resp_content_type("application/json")
@@ -37,10 +49,7 @@ defmodule WebsocketPlayground.Routers.ApiRouter do
         |> WebsocketPlayground.Repo.all()
         |> Enum.reverse()
 
-      messages_from_genserver = case WebsocketPlayground.ChatRoom.get_state(room_id) do
-        {:ok, room_state} -> room_state.messages
-        _err -> []
-      end
+      messages_from_genserver = WebsocketPlayground.MessageStore.get_messages(room_id)
 
       conn
       |> put_resp_content_type("application/json")
@@ -54,7 +63,6 @@ defmodule WebsocketPlayground.Routers.ApiRouter do
           message: "Invalid Room ID"
         }))
     end
-
   end
 
   match _ do

@@ -1,10 +1,11 @@
-import "./ChatRoom.css"
+//import "./ChatRoom.css"
 import { useEffect, useState, useRef, useContext } from "react";
 import { UsernameContext } from "../contexts/UsernameContext";
 import {
     useHistory, useParams
 } from "react-router-dom";
 import { takeRight } from "lodash";
+import { useIntervalWhen } from "rooks";
 
 export default () => {
     const {name, setName, prevName} = useContext(UsernameContext)
@@ -35,7 +36,12 @@ export default () => {
         fetchMessages();
     }, []);
 
+    
     const [messageInput, setMessageInput] = useState('');
+    const validateAndSetMessageInput = (e) => {
+        setMessageInput(e.target.value.substring(0, 200))
+    };
+
     const sendMessage = (e) => {
         e.preventDefault();
         if (messageInput && websocket && isConnected) {
@@ -61,22 +67,27 @@ export default () => {
             }))
         }
     }
-    const spamRoom = (e) => {
-        e.preventDefault();
-        let count = 0;
-        let interval = setInterval(() => {
-            count++;
-            if (count >= 1000) {
-                clearTimeout(interval);
-            }
+
+    const [isSpamming, setIsSpamming] = useState(false);
+    const [spamCount, setSpamCount] = useState(0);
+    useIntervalWhen(
+        () => {
+            setSpamCount(spamCount + 1);
             if (websocket && isConnected) {
                 websocket.send(JSON.stringify({
-                    data: {message: 'Spam Spam Spam ' + count},
+                    data: {message: 'Spam Spam Spam ' + spamCount},
                 }))
             }
-        }, 100);
+        },
+        50,
+        isSpamming,
+        true,
+    );
+    const toggleSpam = (e) => {
+        e.preventDefault();
+        setIsSpamming(!isSpamming);
     }
-    
+
     const history = useHistory();
 
     useEffect(() => {
@@ -132,43 +143,49 @@ export default () => {
     useEffect(() => {
         if (messageContainerRef.current) {
             messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight - messageContainerRef.current.clientHeight;
-            //messageContainerRef.current.scrollIntoView(false);
         }
     }, [messages])
 
     return (
-        <div className="chat-main">
-            <div className="chat-header">
-                <div className="chat-back" onClick={() => history.push('/')}>Back</div>
-                <div className="chat-title">{roomId}</div>
-                <div className="connection-status">
+        <div className="h-screen flex flex-col">
+            <div className="flex flex-row justify-between items-center border-gray-600 border-b-2 px-4 py-2 shadow-2xl">
+                <div 
+                    onClick={() => history.push('/')} 
+                    className="btn"
+                >
+                    Back
+                </div>
+                <div className="chat-title text-3xl">{roomId}</div>
+                <div>
                     {isConnecting && (
-                        <div>Connecting...</div>
+                        <div className="text-yellow-300">Connecting...</div>
                     )}
                     {!isConnecting && isConnected &&(
-                        <div>Connected</div>
+                        <div className="text-green-300">Connected</div>
                     )}
                     {!isConnecting && !isConnected && (
-                        <div>Disconnected</div>
+                        <div className="text-red-300">Disconnected</div>
                     )}
                 </div>
             </div>
-            <div className="chat-message-container" ref={messageContainerRef}>
+            <div className="flex flex-grow flex-col overflow-y-scroll px-3" ref={messageContainerRef}>
                 {messages.map((message, i) => (
-                    <div className="chat-message" key={i}>{message}</div>
+                    <div className="text-xl m-2 break-all" key={i}>{message}</div>
                 ))}
             </div>
-            <div className="chat-tools">
-                <div className="chat-name" onClick={() => setName('')}>
+            <form action="#" onSubmit={sendMessage} className="flex flex-row border-gray-600 border-t-2 py-2 px-4">
+                <input className="text-2xl flex-grow text-input" type="text" autoFocus value={messageInput} onChange={validateAndSetMessageInput}/>
+                <input className="btn-green ml-2" type="submit" value="Send"/>
+            </form>
+            <div className="flex flex-row justify-between items-center py-2 px-4">
+                <div className="text-2xl cursor-pointer" onClick={() => setName('')}>
                     Name: {name}
                 </div>
-                <form action="#" onSubmit={sendMessage}>
-                    <input type="text" value={messageInput} onChange={(e) => setMessageInput(e.target.value)}/>
-                    <input type="submit" value="Send"/>
-                </form>
-                <button onClick={sendBadPacket}>Send Invalid Packet</button>
-                <button onClick={crashRoom}>Crash Room</button>
-                <button onClick={spamRoom}>Spam Room</button>
+                <div>
+                    <button className="btn-red mr-1" onClick={sendBadPacket}>Crash Connection</button>
+                    <button className="btn-red mr-1" onClick={crashRoom}>Crash Room</button>
+                    <button className="btn-red" onClick={toggleSpam}>{isSpamming ? 'Stop Spam' : 'Spam'}</button>
+                </div>
             </div>
         </div>
     )

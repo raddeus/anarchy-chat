@@ -1,7 +1,7 @@
 defmodule WebsocketPlayground.Routers.MainRouter do
   use Plug.Router
 
-  plug Plug.Logger
+  #plug Plug.Logger
   plug :match
   plug :dispatch
 
