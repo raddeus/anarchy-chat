@@ -174,7 +174,7 @@ export default () => {
                 ))}
             </div>
             <form action="#" onSubmit={sendMessage} className="flex flex-row border-gray-600 border-t-2 py-2 px-4">
-                <input className="text-2xl flex-grow text-input" type="text" autoFocus value={messageInput} onChange={validateAndSetMessageInput}/>
+                <input className="text-2xl min-w-0 flex-grow text-input" type="text" autoFocus value={messageInput} onChange={validateAndSetMessageInput}/>
                 <input className="btn-green ml-2" type="submit" value="Send"/>
             </form>
             <div className="flex flex-row justify-between items-center py-2 px-4">

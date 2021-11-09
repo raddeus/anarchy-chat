@@ -8,7 +8,7 @@ defmodule WebsocketPlayground.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {WebsocketPlayground.Repo, []},
+      {WebsocketPlayground.Repo, [show_sensitive_data_on_connection_error: true]},
       {WebsocketPlayground.MessageStore, []},
       {Registry, keys: :duplicate, name: Registry.WebsocketConnections}, # TODO - naming? WebsocketPlayground.WebsocketConnectionRegistry?
       {Registry, keys: :unique, name: WebsocketPlayground.ChatRoom.Registry},
