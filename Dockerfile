@@ -3,6 +3,9 @@ FROM hexpm/elixir:1.12.2-erlang-24.1.4-alpine-3.13.6 as build
 RUN apk update && apk add bash
 RUN apk add --update nodejs nodejs-npm
 
+ARG REACT_APP_API_BASE
+ARG REACT_APP_WS_BASE
+
 # TODO REMOVE
 ARG DATABASE_URL
 
