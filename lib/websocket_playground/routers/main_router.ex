@@ -6,17 +6,12 @@ defmodule WebsocketPlayground.Routers.MainRouter do
   plug :dispatch
 
   forward "/public", to: WebsocketPlayground.Handlers.StaticFileHandler
+  forward "/api", to: WebsocketPlayground.Routers.ApiRouter
 
-  get "/" do
+  match _ do
     file = File.read!("priv/static/dist/index.html")
     conn
     |> put_resp_content_type("text/html")
     |> send_resp(200, file)
-  end
-
-  forward "/api", to: WebsocketPlayground.Routers.ApiRouter
-
-  match _ do
-    send_resp(conn, 404, "Not Found")
   end
 end
