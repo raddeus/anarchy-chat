@@ -12,5 +12,9 @@ config :websocket_playground, WebsocketPlayground.Repo,
   database: System.get_env("DB_NAME"),
   hostname: System.get_env("DB_HOST"),
   port: System.get_env("DB_PORT", "5432"),
+  ssl: System.get_env("DB_SSL") === "true",
   log: false,
   pool_size: 10
+
+
+config :websocket_playground, port: System.get_env("PORT", "4000")

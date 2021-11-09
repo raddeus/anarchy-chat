@@ -21,7 +21,7 @@ defmodule WebsocketPlayground.Application do
       },
       {Plug.Cowboy, scheme: :http, plug: nil, options: [
         dispatch: dispatch(),
-        port: 4000
+        port: String.to_integer(Application.fetch_env!(:websocket_playground, :port))
       ]}
     ]
 
