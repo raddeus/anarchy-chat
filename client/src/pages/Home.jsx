@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
     useHistory
   } from "react-router-dom";
-
+import config from "../config";
 export default () => {
     const [newRoomId, _setNewRoomId] = useState('');
     const setNewRoomId = (val) => {
@@ -21,7 +21,7 @@ export default () => {
         async function fetchRooms() {
             setIsFetchingRooms(true);
             try {
-                const response = await fetch('http://localhost:4000/api/rooms');
+                const response = await fetch(config.api_base + '/api/rooms');
                 const data = await response.json();
                 setRooms(data.rooms);
             } catch (e) {

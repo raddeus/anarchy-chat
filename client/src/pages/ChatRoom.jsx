@@ -6,7 +6,8 @@ import {
 } from "react-router-dom";
 import { takeRight } from "lodash";
 import { useIntervalWhen } from "rooks";
-
+import config
+ from "../config";
 export default () => {
     const {name, setName, prevName} = useContext(UsernameContext)
     let { roomId } = useParams();
@@ -23,7 +24,7 @@ export default () => {
         async function fetchMessages() {
             setIsFetchingMessages(true);
             try {
-                const response = await fetch('http://localhost:4000/api/messages?room_id=' + encodeURIComponent(roomId));
+                const response = await fetch(config.api_base + '/api/messages?room_id=' + encodeURIComponent(roomId));
                 const data = await response.json();
                 setMessages(data.messages.map(msg => msg.sender + ': ' + msg.content));
             } catch (e) {
@@ -95,7 +96,7 @@ export default () => {
         let shouldReconnect = true;
         async function initWebsocket() {
             console.log('INIT WEBSOCKET');
-            ws = new WebSocket("ws://localhost:4000/ws/" + encodeURIComponent(roomId) + '?username=' + encodeURIComponent(name));
+            ws = new WebSocket(config.ws_base + "/ws/" + encodeURIComponent(roomId) + '?username=' + encodeURIComponent(name));
             setWebsocket(ws);
             setIsConnecting(true);
             setIsConnected(false);
