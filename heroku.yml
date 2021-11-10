@@ -3,4 +3,4 @@ build:
     web: Dockerfile
   config:
     REACT_APP_API_BASE: https://anarchy-chat-prod.herokuapp.com
-    REACT_APP_WS_BASE: ws://anarchy-chat-prod.herokuapp.com
+    REACT_APP_WS_BASE: wss://anarchy-chat-prod.herokuapp.com
