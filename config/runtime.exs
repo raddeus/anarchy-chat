@@ -1,4 +1,7 @@
 import Config
+import Dotenvy
+
+source([".env", ".env.#{config_env()}", ".env.#{config_env()}.local"])
 
 config :logger, :console,
   metadata: [:room_id, :pid]
@@ -7,14 +10,13 @@ config :websocket_playground, ecto_repos: [WebsocketPlayground.Repo]
 
 config :websocket_playground, WebsocketPlayground.Repo,
   adapter: Ecto.Adapters.Postgres,
-  username: System.get_env("DB_USER"),
-  password: System.get_env("DB_PASSWORD"),
-  database: System.get_env("DB_NAME"),
-  hostname: System.get_env("DB_HOST"),
-  port: System.get_env("DB_PORT", "5432"),
-  ssl: System.get_env("DB_SSL") === "true",
+  username: env!("DB_USER", :string),
+  password: env!("DB_PASSWORD", :string),
+  database: env!("DB_NAME", :string),
+  hostname: env!("DB_HOST", :string),
+  port: env!("DB_PORT", :integer),
+  ssl: env!("DB_SSL", :boolean),
   log: false,
   pool_size: 10
 
-
-config :websocket_playground, port: System.get_env("PORT", "4000")
+config :websocket_playground, port: env!("PORT", :integer)

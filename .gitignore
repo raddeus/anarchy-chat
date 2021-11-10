@@ -27,3 +27,6 @@ websocket_playground-*.tar
 
 # react build dir
 /priv/static/dist
+
+.env
+.env.*.local

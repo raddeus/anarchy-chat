@@ -7,6 +7,7 @@ defmodule WebsocketPlayground.Application do
 
   @impl true
   def start(_type, _args) do
+
     children = [
       {WebsocketPlayground.Repo, [show_sensitive_data_on_connection_error: true]},
       {WebsocketPlayground.MessageStore, []},
@@ -21,7 +22,7 @@ defmodule WebsocketPlayground.Application do
       },
       {Plug.Cowboy, scheme: :http, plug: nil, options: [
         dispatch: dispatch(),
-        port: String.to_integer(Application.fetch_env!(:websocket_playground, :port))
+        port: Application.fetch_env!(:websocket_playground, :port)
       ]}
     ]
 
