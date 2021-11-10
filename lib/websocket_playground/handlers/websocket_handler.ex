@@ -21,7 +21,9 @@ defmodule WebsocketPlayground.WebsocketHandler do
   end
 
   defp authorized?(room_id, username) do
-    username_valid? = String.length(username) >= 3 && String.length(username) <= 20
+    username_valid? = String.length(username) >= 3
+      && String.length(username) <= 20
+      && username !== "SYSTEM"
     room_id_valid? = String.length(room_id) >= 1 && String.length(username) <= 20
     username_valid? && room_id_valid?
   end
@@ -37,16 +39,6 @@ defmodule WebsocketPlayground.WebsocketHandler do
       {:ok, pid} = get_or_create_room(state.room_id)
       GenServer.cast(pid, {:add_connection, self()})
       {:ok, state}
-    end
-  end
-
-  defp get_or_create_room(room_id) do
-    case WebsocketPlayground.ChatRoom.lookup(room_id) do
-      {:ok, pid} ->
-        {:ok, pid}
-      _ ->
-        Logger.debug("Creating new room: " <> room_id)
-        WebsocketPlayground.ChatRoom.start(room_id)
     end
   end
 
@@ -71,4 +63,15 @@ defmodule WebsocketPlayground.WebsocketHandler do
     Logger.error("Got unhandled websocket_info #{inspect info}")
     {:ok, state}
   end
+
+  defp get_or_create_room(room_id) do
+    case WebsocketPlayground.ChatRoom.lookup(room_id) do
+      {:ok, pid} ->
+        {:ok, pid}
+      _ ->
+        Logger.debug("Creating new room: " <> room_id)
+        WebsocketPlayground.ChatRoom.start(room_id)
+    end
+  end
+
 end

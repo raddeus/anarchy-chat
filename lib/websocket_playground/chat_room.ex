@@ -106,7 +106,6 @@ defmodule WebsocketPlayground.ChatRoom do
     {:noreply, state}
   end
 
-
   @impl true
   def handle_cast({:add_connection, pid}, state) do
     Logger.info("Adding Connection: #{inspect pid}")
@@ -119,6 +118,8 @@ defmodule WebsocketPlayground.ChatRoom do
   def handle_call(:get_state, _from, state) do
     {:reply, {:ok, state}, state}
   end
+
+  @impl true
   def handle_call(:user_count, _from, state) do
     {:reply, map_size(state.refs), state}
   end
@@ -136,6 +137,7 @@ defmodule WebsocketPlayground.ChatRoom do
     {:noreply, %{state | refs: refs }}
   end
 
+  @impl true
   def handle_info(:persist_messages, state) do
     Logger.info("Persisting all messages...");
 
@@ -151,6 +153,7 @@ defmodule WebsocketPlayground.ChatRoom do
     {:noreply, state}
   end
 
+  @impl true
   def handle_info(:terminate_if_vacant, state) do
     if map_size(state.refs) === 0 do
       Logger.info("Terminating normally due to no activity")
