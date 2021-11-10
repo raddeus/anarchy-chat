@@ -102,7 +102,6 @@ export default () => {
             setIsConnected(false);
 
             ws.addEventListener("message", (event) => {
-                console.log(event.data);
                 setMessages(messages => {
                     return takeRight([...messages, event.data], 500);
                 })
