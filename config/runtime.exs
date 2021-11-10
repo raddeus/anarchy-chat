@@ -16,6 +16,7 @@ config :websocket_playground, WebsocketPlayground.Repo,
   hostname: env!("DB_HOST", :string),
   port: env!("DB_PORT", :integer),
   ssl: env!("DB_SSL", :boolean),
+  ssl_opts: [log_level: :error],
   log: false,
   pool_size: 10
 

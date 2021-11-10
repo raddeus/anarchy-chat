@@ -41,7 +41,6 @@ defmodule WebsocketPlayground.ChatRoom do
 
   @impl true
   def init(opts) do
-
     state = %{
       room_id: Keyword.fetch!(opts, :room_id),
       names: %{},
@@ -49,6 +48,7 @@ defmodule WebsocketPlayground.ChatRoom do
     }
     Logger.metadata(room_id: state.room_id)
 
+    GenServer.cast(self(), {:broadcast_system_message, "Room Started: #{inspect self()}"})
     schedule_persist_messages()
     schedule_hibernate()
     {:ok, state}
@@ -84,6 +84,28 @@ defmodule WebsocketPlayground.ChatRoom do
     end)
     {:noreply, state}
   end
+
+  @impl true
+  def handle_cast({:broadcast_system_message, content}, state) do
+    Registry.WebsocketConnections
+    |> Registry.dispatch(state.room_id, fn(entries) ->
+      for {pid, _state} <- entries do
+          payload = {
+            :broadcast_message,
+            %{
+              sender: "SYSTEM",
+              content: content,
+              room: state.room_id,
+              inserted_at: now(),
+              updated_at: now(),
+            }
+          }
+          Process.send(pid, payload, [])
+      end
+    end)
+    {:noreply, state}
+  end
+
 
   @impl true
   def handle_cast({:add_connection, pid}, state) do
