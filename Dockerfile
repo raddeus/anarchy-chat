@@ -21,5 +21,7 @@ RUN export MIX_ENV=prod && \
     mix deps.get && \
     mix release
 
+RUN ln -s /app/_build/prod/rel/websocket_playground/bin/websocket_playground /app/app
+
 RUN chmod +x /app/docker-start.sh
 CMD ["/app/docker-start.sh"]
