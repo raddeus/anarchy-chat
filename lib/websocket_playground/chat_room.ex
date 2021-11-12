@@ -43,15 +43,18 @@ defmodule WebsocketPlayground.ChatRoom do
   def init(opts) do
     state = %{
       room_id: Keyword.fetch!(opts, :room_id),
-      names: %{},
       refs: %{},
     }
     Logger.metadata(room_id: state.room_id)
+    {:ok, state, {:continue, :init}}
+  end
 
+  @impl true
+  def handle_continue(:init, state) do
     GenServer.cast(self(), {:broadcast_system_message, "Room Started: #{inspect self()}"})
     schedule_persist_messages()
     schedule_hibernate()
-    {:ok, state}
+    {:noreply, state}
   end
 
   @impl true
