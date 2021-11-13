@@ -55,8 +55,8 @@ defmodule WebsocketPlayground.WebsocketHandler do
     end
   end
 
-  def websocket_info({:broadcast_message, %{content: content, sender: sender}}, state) do
-    {:reply, {:text, "#{sender}: #{content}"}, state}
+  def websocket_info({:broadcast_message, messages}, state) do
+    {:reply, {:text, Jason.encode!(messages)}, state}
   end
 
   def websocket_info(info, state) do

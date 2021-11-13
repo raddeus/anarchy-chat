@@ -26,7 +26,7 @@ export default () => {
             try {
                 const response = await fetch(config.api_base + '/api/messages?room_id=' + encodeURIComponent(roomId));
                 const data = await response.json();
-                setMessages(data.messages.map(msg => msg.sender + ': ' + msg.content));
+                setMessages(data.messages);
             } catch (e) {
                 console.error(e);
                 setMessages([]);
@@ -68,7 +68,14 @@ export default () => {
             }))
         }
     }
-
+    const serverSpam = (e) => {
+        e.preventDefault();
+        if (websocket && isConnected) {
+            websocket.send(JSON.stringify({
+                data: {message: '!spam'},
+            }))
+        }
+    }
     const [isSpamming, setIsSpamming] = useState(false);
     const [spamCount, setSpamCount] = useState(0);
     useIntervalWhen(
@@ -103,7 +110,7 @@ export default () => {
 
             ws.addEventListener("message", (event) => {
                 setMessages(messages => {
-                    return takeRight([...messages, event.data], 500);
+                    return takeRight([...messages, ...JSON.parse(event.data)], 500);
                 })
             })
 
@@ -170,7 +177,24 @@ export default () => {
             </div>
             <div className="flex flex-grow flex-col overflow-y-scroll px-3" ref={messageContainerRef}>
                 {messages.map((message, i) => (
-                    <div className="text-xl m-2 break-all" key={i}>{message}</div>
+                    <div className={"flex flex-col bg-gray-800 my-2 rounded-md" + (message.sender === 'SYSTEM' ? ' text-yellow-300' : '')}>
+                        <div className="flex flex-row items-center py-1 px-2">
+                            <div className="flex-shrink text-xl font-bold">
+                                {message.sender}:
+                            </div>
+                            <div className="flex-grow text-xl ml-2 break-all" key={message.uuid || message.temp_id}>
+                                {message.content}
+                            </div>
+                        </div>
+                        <div className="flex flex-row items-center justify-between px-2 text-sm">
+                            <div className="">
+                                {message.inserted_at}
+                            </div>
+                            <div className="" key={message.uuid || message.temp_id}>
+                                {message.uuid || message.temp_id}
+                            </div>
+                        </div>
+                    </div>
                 ))}
             </div>
             <form action="#" onSubmit={sendMessage} className="flex flex-row border-gray-600 border-t-2 py-2 px-4">
@@ -184,7 +208,8 @@ export default () => {
                 <div>
                     <button className="btn-red mr-1" onClick={sendBadPacket}>Crash Connection</button>
                     <button className="btn-red mr-1" onClick={crashRoom}>Crash Room</button>
-                    <button className="btn-red" onClick={toggleSpam}>{isSpamming ? 'Stop Spam' : 'Spam'}</button>
+                    <button className="btn-red mr-1" onClick={toggleSpam}>{isSpamming ? 'Stop Spam' : 'Spam (Client)'}</button>
+                    <button className="btn-red" onClick={serverSpam}>Spam (Server)</button>
                 </div>
             </div>
         </div>
